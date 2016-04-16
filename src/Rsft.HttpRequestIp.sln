@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Business Logic", "Business Logic", "{9AF81425-188C-4F25-A3E5-1EF62033AA57}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Integration Tests", "Integration Tests", "{3E5D8554-F3E7-4E77-993B-29F45C933B97}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rsft.HttpRequestIp", "Business Logic\Rsft.HttpRequestIp\Rsft.HttpRequestIp.csproj", "{4C2EC68C-3CC6-468D-A61C-4070CD6219A3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rsft.HttpRequestIp.Test.WebApp", "Integration Tests\Rsft.HttpRequestIp.Test.WebApp\Rsft.HttpRequestIp.Test.WebApp.csproj", "{062464E1-57B3-43F8-9108-1D26E65E7B93}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4C2EC68C-3CC6-468D-A61C-4070CD6219A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C2EC68C-3CC6-468D-A61C-4070CD6219A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C2EC68C-3CC6-468D-A61C-4070CD6219A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C2EC68C-3CC6-468D-A61C-4070CD6219A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{062464E1-57B3-43F8-9108-1D26E65E7B93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{062464E1-57B3-43F8-9108-1D26E65E7B93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{062464E1-57B3-43F8-9108-1D26E65E7B93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{062464E1-57B3-43F8-9108-1D26E65E7B93}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4C2EC68C-3CC6-468D-A61C-4070CD6219A3} = {9AF81425-188C-4F25-A3E5-1EF62033AA57}
+		{062464E1-57B3-43F8-9108-1D26E65E7B93} = {3E5D8554-F3E7-4E77-993B-29F45C933B97}
+	EndGlobalSection
+EndGlobal

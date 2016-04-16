@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/Rolosoft/http-request-ip</projectUrl>
+    <iconUrl>https://rolosoft.blob.core.windows.net/common/rolosoft128x128.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <summary>For web applications that need to know the IP address of the remote client. Runs in IIS 6, 7 &amp; 8 on framework 4.0 or higher. Warning: Does NOT run in Application startup (global.asax)</summary>
+    <releaseNotes>Moved to GitHub.</releaseNotes>
+    <copyright>Copyright Rolosoft 2016</copyright>
+    <language>en-US</language>
+    <tags>rolosoft IIS</tags>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.Web" targetFramework="net40" />
+    </frameworkAssemblies>
+  </metadata>
+  <files>
+    <file src="bin\$configuration$\$id$.xml" target="lib\net40"/>
+    <file src="readme.txt" target="" />
+  </files>
+</package>
