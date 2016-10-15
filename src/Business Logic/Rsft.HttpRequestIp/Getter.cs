@@ -53,7 +53,7 @@ namespace Rsft.HttpRequestIp
         /// <value>
         /// The best guess IP.
         /// </value>
-        /// <exception cref="System.Web.HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
+        /// <exception cref="HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
         private static string BestGuessIp
         {
             get
@@ -167,8 +167,6 @@ namespace Rsft.HttpRequestIp
 
                 // if asked to take first in possible comma delimited, parse and take else take raw value;
                 rtn = variable.Item3 ? GetFirstDelimitFromServerVar(i) : i;
-
-                break;
             }
 
             return rtn;
