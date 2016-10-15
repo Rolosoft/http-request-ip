@@ -21,8 +21,6 @@ namespace Rsft.HttpRequestIp.Entities
     /// </summary>
     public class RequestInfo
     {
-        #region Public Properties
-
         /// <summary>
         /// Gets or sets the best guess IP.
         /// </summary>
@@ -34,13 +32,22 @@ namespace Rsft.HttpRequestIp.Entities
         public bool IsProxied { get; set; }
 
         /// <summary>
+        /// Gets or sets the IP country.
+        /// </summary>
+        /// <value>
+        /// The IP country.
+        /// </value>
+        /// <remarks>
+        /// Provided only if using CloudFlare.
+        /// </remarks>
+        public string IpCountry { get; set; }
+
+        /// <summary>
         /// Gets or sets the server variables.
         /// </summary>
         /// <value>
         /// The server variables.
         /// </value>
         public ServerVariables ServerVariables { get; set; }
-
-        #endregion
     }
 }

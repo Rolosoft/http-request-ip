@@ -46,6 +46,10 @@
                 <th scope="row">RemoteAddressHeader</th>
                 <td><%=Rsft.HttpRequestIp.Getter.Get().ServerVariables.RemoteAddressHeader %></td>
             </tr>
+            <tr>
+                <th scope="row">CF_IPCOUNTRY</th>
+                <td><%=Rsft.HttpRequestIp.Getter.Get().ServerVariables.IpCountry %></td>
+            </tr>
         </table>
     </div>
     </form>

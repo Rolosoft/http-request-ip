@@ -16,10 +16,13 @@ Copyright 2013 Rolosoft.com
 
 namespace Rsft.HttpRequestIp
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Web;
 
-    using Rsft.HttpRequestIp.Entities;
-    
+    using Entities;
+
     /// <summary>
     /// Gets the best guess of a users (hosts) IP address.
     /// </summary>
@@ -39,6 +42,11 @@ namespace Rsft.HttpRequestIp
     /// </remarks>
     public static class Getter
     {
+        /// <summary>
+        /// The splitter1
+        /// </summary>
+        private static readonly char[] Splitter1 = { ',' };
+
         /// <summary>
         /// Gets the best guess IP.
         /// </summary>
@@ -98,7 +106,6 @@ namespace Rsft.HttpRequestIp
                 return proxyDetected;
             }
         }
-        
 
         /// <summary>
         /// The get.
@@ -106,52 +113,105 @@ namespace Rsft.HttpRequestIp
         /// <returns>
         /// The <see cref="RequestInfo"/>.
         /// </returns>
-        /// <exception cref="System.Web.HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
+        /// <exception cref="HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
         public static RequestInfo Get()
         {
+            var serverVariables = GetServerVariables();
+
             return new RequestInfo
                        {
                            BestGuessIp = BestGuessIp,
                            IsProxied = IsProxyDetected,
-                           ServerVariables = GetServerVariables()
+                           ServerVariables = serverVariables,
+                           IpCountry = serverVariables.IpCountry
                        };
         }
 
         /// <summary>
         /// The get server variable.
         /// </summary>
-        /// <param name="key">
-        /// The key.
-        /// </param>
+        /// <param name="keys">The keys.</param>
         /// <returns>
-        /// The <see cref="string"/>.
+        /// The <see cref="string" />.
         /// </returns>
-        /// <exception cref="System.Web.HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
-        private static string GetServerVariable(string key)
+        private static string GetServerVariable(List<Tuple<int, string, bool>> keys)
         {
-            return HttpContext.Current == null ? null : HttpContext.Current.Request.ServerVariables[key];
+            if (HttpContext.Current == null)
+            {
+                return null;
+            }
+
+            if (keys == null)
+            {
+                return null;
+            }
+
+            if (!keys.Any())
+            {
+                return null;
+            }
+
+            string rtn = null;
+
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (var variable in keys.OrderBy(r => r.Item1))
+            {
+                if (string.IsNullOrWhiteSpace(variable.Item2))
+                {
+                    continue;
+                }
+
+                var nameValueCollection = HttpContext.Current.Request.ServerVariables;
+
+                var i = nameValueCollection[variable.Item2];
+
+                // if asked to take first in possible comma delimited, parse and take else take raw value;
+                rtn = variable.Item3 ? GetFirstDelimitFromServerVar(i) : i;
+
+                break;
+            }
+
+            return rtn;
         }
 
         /// <summary>
         /// Gets the server variables.
         /// </summary>
         /// <returns>The <see cref="ServerVariables"/>.</returns>
-        /// <exception cref="System.Web.HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
+        /// <exception cref="HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
         private static ServerVariables GetServerVariables()
         {
             var serverVariables = new ServerVariables
                                       {
                                           HttpForwardedForHeader =
-                                              GetServerVariable("HTTP_FORWARDED"),
-                                          HttpForwardedHeader = GetServerVariable("HTTP_FROM"),
-                                          HttpViaHeader = GetServerVariable("HTTP_VIA"),
+                                              GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_FORWARDED", false) }),
+                                          HttpForwardedHeader = GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_FROM", false) }),
+                                          HttpViaHeader = GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_VIA", false) }),
                                           HttpXForwardedForHeader =
-                                              GetServerVariable("HTTP_X_FORWARDED_FOR"),
+                                              GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_X_FORWARDED_FOR", true) }),
                                           RemoteAddressHeader =
-                                              GetServerVariable("REMOTE_ADDR")
+                                              GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_CF_CONNECTING_IP", false), new Tuple<int, string, bool>(1, "REMOTE_ADDR", false) }),
+                                          IpCountry = GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_CF_IPCOUNTRY", false) })
                                       };
 
             return serverVariables;
+        }
+
+        private static string GetFirstDelimitFromServerVar(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            if (!value.Contains(","))
+            {
+                return value;
+            }
+
+            var strings = value.Split(Splitter1);
+
+            return strings.FirstOrDefault();
         }
     }
 }
