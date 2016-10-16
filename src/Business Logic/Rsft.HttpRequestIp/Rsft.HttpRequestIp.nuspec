@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
     <summary>For web applications that need to know the IP address of the remote client. Runs in IIS 6, 7 &amp; 8 on framework 4.0 or higher. Warning: Does NOT run in Application startup (global.asax)</summary>
-    <releaseNotes>Added CloudFlare capability. New attribute for IP Country (CloudFlare only).</releaseNotes>
+    <releaseNotes>Bug fixes for CloudFlare use. Added unit tests.</releaseNotes>
     <copyright>Copyright Rolosoft 2016</copyright>
     <language>en-US</language>
     <tags>rolosoft IIS</tags>

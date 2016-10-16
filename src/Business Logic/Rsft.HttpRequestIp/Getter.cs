@@ -1,5 +1,5 @@
 ﻿/*
-Copyright 2013 Rolosoft.com
+Copyright 2013 - 2016 Rolosoft.com
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,11 +17,12 @@ Copyright 2013 Rolosoft.com
 namespace Rsft.HttpRequestIp
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
+    using System.Collections.Specialized;
+    using System.Diagnostics.Contracts;
     using System.Web;
-
     using Entities;
+    using Interfaces;
+    using Logic;
 
     /// <summary>
     /// Gets the best guess of a users (hosts) IP address.
@@ -43,173 +44,111 @@ namespace Rsft.HttpRequestIp
     public static class Getter
     {
         /// <summary>
-        /// The splitter1
+        /// The address guess resolver none lazy
         /// </summary>
-        private static readonly char[] Splitter1 = { ',' };
+        private static readonly Lazy<AddressGuessResolverNoneReverseProxy> AddressGuessResolverNoneLazy = new Lazy<AddressGuessResolverNoneReverseProxy>(() => new AddressGuessResolverNoneReverseProxy());
 
         /// <summary>
-        /// Gets the best guess IP.
+        /// The address guess resolver cloud flare lazy
         /// </summary>
-        /// <value>
-        /// The best guess IP.
-        /// </value>
-        /// <exception cref="HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
-        private static string BestGuessIp
-        {
-            get
-            {
-                var rtn = string.Empty;
-
-                if (!string.IsNullOrWhiteSpace(GetServerVariables().RemoteAddressHeader))
-                {
-                    rtn = GetServerVariables().RemoteAddressHeader;
-                }
-                else
-                {
-                    if (!string.IsNullOrWhiteSpace(GetServerVariables().HttpXForwardedForHeader))
-                    {
-                        rtn = GetServerVariables().HttpXForwardedForHeader;
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrWhiteSpace(GetServerVariables().HttpForwardedHeader))
-                        {
-                            rtn = GetServerVariables().HttpForwardedHeader;
-                        }
-                        else
-                        {
-                            if (!string.IsNullOrWhiteSpace(GetServerVariables().HttpXForwardedForHeader))
-                            {
-                                rtn = GetServerVariables().HttpXForwardedForHeader;
-                            }
-                        }
-                    }
-                }
-
-                return rtn;
-            }
-        }
+        private static readonly Lazy<AddressGuessResolverCloudFlareReverseProxy> AddressGuessResolverCloudFlareLazy = new Lazy<AddressGuessResolverCloudFlareReverseProxy>(() => new AddressGuessResolverCloudFlareReverseProxy());
 
         /// <summary>
-        /// Gets a value indicating whether is proxy detected.
+        /// The address resolver lazy
         /// </summary>
-        /// <exception cref="System.Web.HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
-        private static bool IsProxyDetected
-        {
-            get
-            {
-                var proxyDetected = !string.IsNullOrWhiteSpace(GetServerVariables().HttpXForwardedForHeader)
-                                    || !string.IsNullOrWhiteSpace(GetServerVariables().HttpForwardedHeader)
-                                    || !string.IsNullOrWhiteSpace(GetServerVariables().HttpForwardedForHeader)
-                                    || !string.IsNullOrWhiteSpace(GetServerVariables().HttpViaHeader);
+        private static Lazy<IAddressGuessResolver<AddressGuessResolverRequest, AddressGuessResolverResponse>> addressResolverLazy;
 
-                return proxyDetected;
-            }
-        }
+        /// <summary>
+        /// My reverse proxy type
+        /// </summary>
+        private static ReverseProxyType myReverseProxyType;
 
         /// <summary>
         /// The get.
         /// </summary>
+        /// <param name="reverseProxyType">the <see cref="ReverseProxyType" /> of the reverse proxy.
+        /// <remarks>Default is ReverseProxyType.AutoDetect</remarks></param>
+        /// <param name="serverVars">The server variables.</param>
         /// <returns>
-        /// The <see cref="RequestInfo"/>.
+        /// The <see cref="RequestInfo" />.
         /// </returns>
-        /// <exception cref="HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
-        public static RequestInfo Get()
+        public static RequestInfo Get(ReverseProxyType reverseProxyType = ReverseProxyType.AutoDetect, NameValueCollection serverVars = null)
         {
-            var serverVariables = GetServerVariables();
+            Contract.Requires(Enum.IsDefined(typeof(ReverseProxyType), reverseProxyType));
 
-            return new RequestInfo
-                       {
-                           BestGuessIp = BestGuessIp,
-                           IsProxied = IsProxyDetected,
-                           ServerVariables = serverVariables,
-                           IpCountry = serverVariables.IpCountry
-                       };
-        }
+            myReverseProxyType = reverseProxyType;
 
-        /// <summary>
-        /// The get server variable.
-        /// </summary>
-        /// <param name="keys">The keys.</param>
-        /// <returns>
-        /// The <see cref="string" />.
-        /// </returns>
-        private static string GetServerVariable(List<Tuple<int, string, bool>> keys)
-        {
-            if (HttpContext.Current == null)
-            {
-                return null;
-            }
+            var rtn = new RequestInfo();
 
-            if (keys == null)
-            {
-                return null;
-            }
+            var varsToUse = serverVars ?? HttpContext.Current.Request.ServerVariables;
 
-            if (!keys.Any())
-            {
-                return null;
-            }
+            var addressGuessResolver = GuessResolver(varsToUse);
 
-            string rtn = null;
+            var addressGuessResolverResponse = addressGuessResolver.GetGuess(new AddressGuessResolverRequest { ServerVariablesNameValueCollection = varsToUse });
 
-            // ReSharper disable once LoopCanBeConvertedToQuery
-            foreach (var variable in keys.OrderBy(r => r.Item1))
-            {
-                if (string.IsNullOrWhiteSpace(variable.Item2))
-                {
-                    continue;
-                }
-
-                var nameValueCollection = HttpContext.Current.Request.ServerVariables;
-
-                var i = nameValueCollection[variable.Item2];
-
-                // if asked to take first in possible comma delimited, parse and take else take raw value;
-                rtn = variable.Item3 ? GetFirstDelimitFromServerVar(i) : i;
-            }
+            rtn.IpCountry = addressGuessResolverResponse.IpCountry;
+            rtn.BestGuessIp = addressGuessResolverResponse.BestGuessIp;
+            rtn.IsProxied = addressGuessResolverResponse.IsProxied;
+            rtn.ServerVariables
+                = new ServerVariables
+                        {
+                            HttpForwardedForHeader = addressGuessResolverResponse.ServerVariables.HttpForwardedForHeader,
+                            IpCountry = addressGuessResolverResponse.ServerVariables.IpCountry,
+                            RemoteAddressHeader = addressGuessResolverResponse.ServerVariables.RemoteAddressHeader,
+                            HttpForwardedHeader = addressGuessResolverResponse.ServerVariables.HttpForwardedHeader,
+                            HttpViaHeader = addressGuessResolverResponse.ServerVariables.HttpViaHeader,
+                            HttpXForwardedForHeader = addressGuessResolverResponse.ServerVariables.HttpXForwardedForHeader
+                        };
 
             return rtn;
         }
 
         /// <summary>
-        /// Gets the server variables.
+        /// Gets the guess resolver.
         /// </summary>
-        /// <returns>The <see cref="ServerVariables"/>.</returns>
-        /// <exception cref="HttpException">The web application is running under IIS7 in Integrated mode and HttpContext cannot be used in application startup.</exception>
-        private static ServerVariables GetServerVariables()
+        /// <param name="nameValueCollection">The name value collection.</param>
+        /// <returns>The <see cref="IAddressGuessResolver&lt;AddressGuessResolverRequest, AddressGuessResolverResponse&gt;"/></returns>
+        /// <value>
+        /// The guess resolver.
+        /// </value>
+        private static IAddressGuessResolver<AddressGuessResolverRequest, AddressGuessResolverResponse> GuessResolver(NameValueCollection nameValueCollection)
         {
-            var serverVariables = new ServerVariables
-                                      {
-                                          HttpForwardedForHeader =
-                                              GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_FORWARDED", false) }),
-                                          HttpForwardedHeader = GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_FROM", false) }),
-                                          HttpViaHeader = GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_VIA", false) }),
-                                          HttpXForwardedForHeader =
-                                              GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_X_FORWARDED_FOR", true) }),
-                                          RemoteAddressHeader =
-                                              GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_CF_CONNECTING_IP", false), new Tuple<int, string, bool>(1, "REMOTE_ADDR", false) }),
-                                          IpCountry = GetServerVariable(new List<Tuple<int, string, bool>> { new Tuple<int, string, bool>(0, "HTTP_CF_IPCOUNTRY", false) })
-                                      };
-
-            return serverVariables;
-        }
-
-        private static string GetFirstDelimitFromServerVar(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
+            if (addressResolverLazy != null)
             {
-                return null;
+                return addressResolverLazy.Value;
             }
 
-            if (!value.Contains(","))
+            IAddressGuessResolver<AddressGuessResolverRequest, AddressGuessResolverResponse> rtn;
+
+            switch (myReverseProxyType)
             {
-                return value;
+                case ReverseProxyType.None:
+                    rtn = AddressGuessResolverNoneLazy.Value;
+                    break;
+                case ReverseProxyType.CloudFlare:
+                    rtn = AddressGuessResolverCloudFlareLazy.Value;
+                    break;
+                case ReverseProxyType.AutoDetect:
+                    if (nameValueCollection["HTTP_CF_CONNECTING_IP"] != null)
+                    {
+                        rtn = AddressGuessResolverCloudFlareLazy.Value;
+                    }
+                    else
+                    {
+                        rtn = AddressGuessResolverNoneLazy.Value;
+                    }
+
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
-            var strings = value.Split(Splitter1);
+            if (addressResolverLazy == null)
+            {
+                addressResolverLazy = new Lazy<IAddressGuessResolver<AddressGuessResolverRequest, AddressGuessResolverResponse>>(() => rtn);
+            }
 
-            return strings.FirstOrDefault();
+            return addressResolverLazy.Value;
         }
     }
 }
